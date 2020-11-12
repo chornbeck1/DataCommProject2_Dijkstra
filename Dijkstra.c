@@ -4,44 +4,114 @@
 #include <string.h>
 #include <stdbool.h>
 #include <math.h>
+#include <limits.h>
+#include "Dijkstra.h"
 
-struct Path
-{
-	char source;
-	char dest;
-	int cost;
-	int numNodes;
-	char* path[24];
-}
 
-struct Node
-{
-	char name;
-	int weightToA;
-	int numNbrs;
-	char pathToA[26];
-	char nbrs[25];
-	char weights[25];
-	struct Path paths[25];
-};
 
-struct Message
-{
-	char source;
-	char dest;
-	int cost;
-};
-
-char* dataFile = "LSInput.txt";
+char* dataFile;
 char foundNodes[26];
+char baseNode = 'A';
 struct Node Nodes[26];
-struct Node ProcessedNodes[26];
+char ProcessedNodes[26];
 struct Message Messages[1024];
 int numNodesFound=0;
 int numNodesProcessed=0;
 int messagesFound=0;
 int adjMat[26][26];
 
+int main(int argc, char *argv[]) {
+	if(argc>1)
+	{
+		printf("%s\n",argv[1]);
+		dataFile = argv[1];
+	}
+	else
+	{
+		dataFile = "inputTest.txt";
+	}
+	
+	InitMatrix();
+	ReadFile(dataFile);
+	FindNeighbours();
+	DisplayTable();
+	
+	//for(int i=0;i<messagesFound;i++){PrintMessage(Messages[i]);}
+	//for(int i=0;i<numNodesFound;i++){PrintNode(Nodes[i]);}
+	
+	
+	DisplayLine(0);
+	while(numNodesProcessed<numNodesFound)
+	{
+		int idx = FindNextNode();
+		ProcessedNodes[numNodesProcessed]=Nodes[idx].name;
+		for(int i=0;i<Nodes[idx].numNbrs;i++)
+		{
+			int nbrIdx=FindNodeWithName(Nodes[idx].nbrs[i]);
+			int costToNbr=Nodes[idx].weights[i];
+			if((Nodes[nbrIdx].weightToA<0) || (Nodes[idx].weightToA + costToNbr < Nodes[nbrIdx].weightToA))
+			{
+				Nodes[nbrIdx].weightToA=Nodes[idx].weightToA+costToNbr;
+				Nodes[nbrIdx].nextHop=Nodes[idx].nextHop;
+			}
+		}
+		DisplayLine(numNodesProcessed++);
+	}
+	DisplayRoutingTable();
+	
+}
+
+void DisplayRoutingTable()
+{
+	printf("\n\nRouting Table for %c\n",baseNode);
+	printf("-------------------\n");
+	printf("Dest\tNxtHp\n");
+	for(int i=1;i<numNodesFound;i++){printf("%c\t%c\n",Nodes[i].name, Nodes[i].nextHop);}
+}
+
+int FindNodeWithName(char NodeName)
+{
+	for(int i=0;i<numNodesFound;i++)
+	{
+		if(Nodes[i].name==NodeName)
+		{
+			return i;
+		}
+	}
+	return -1;
+}
+
+void DisplayLine(int step)
+{
+	int numTabs=ceil(numNodesFound/8-(floor(step/7)));
+	printf("  %d\t",step);
+	printf("%s",ProcessedNodes);
+	for(int i=0;i<numTabs;i++){printf("\t");}
+	for(int i=0;i<numNodesFound;i++)
+	{
+		if(HasNodeBeenProcessed(Nodes[i].name)<0)
+		{
+			if(Nodes[i].weightToA<0)
+			{
+				printf("-,-\t");
+			}
+			else
+			{
+				printf("%d,%c\t",Nodes[i].weightToA,Nodes[i].nextHop);
+			}
+		}
+		else
+		{
+			if(ProcessedNodes[numNodesProcessed-1]==Nodes[i].name && Nodes[i].name != baseNode)
+			{
+				printf(" * ");
+			}
+			printf("\t");
+		}
+	}
+	printf("\n");
+	
+}
 
 void ClearBuffer(char* buffer){
     for(int i = 0; i < 256; i++)
@@ -55,7 +125,11 @@ void ReadFile(char* fileName)
 {
 	char inputBuffer[256];
 	char read;
-	FILE *fp = fopen(fileName,"r");
+	FILE *fp;
+	if((fp = fopen(fileName,"r"))==NULL)
+	{
+		printf("\n\nERROR OPENING FILE\n\n");
+	}
 	int count=0;
 	while(1)
 	{
@@ -77,9 +151,8 @@ void ReadFile(char* fileName)
 				Nodes[numNodesFound].name=source;
 				Nodes[numNodesFound].weightToA=-1;
 				Nodes[numNodesFound].numNbrs=0;
+				if(source==baseNode){Nodes[numNodesFound].weightToA=0;}
 				foundNodes[numNodesFound++]=source;
-				
-				if(source=='A'){Nodes[numNodesFound].weightToA=0;}
 			}
 			
 			ClearBuffer(inputBuffer);
@@ -116,6 +189,35 @@ void FindNeighbours()
 				Nodes[j].numNbrs++;
 			}
 		}
+	}	
+	
+	for(int i=0;i<numNodesFound;i++)
+	{
+		if(Nodes[i].name==baseNode)
+		{
+			for(int j=0;j<Nodes[i].numNbrs;j++)
+			{
+				UpdateNodeCost(Nodes[i].nbrs[j], Nodes[i].weights[j],Nodes[i].nbrs[j]);
+			}
+			break;
+		}
+	}
+	
+	ProcessedNodes[numNodesProcessed++]=baseNode;
+}
+
+void UpdateNodeNeighbours(char sourceNode)
+{
+	for(int i=0;i<numNodesFound;i++)
+	{
+		if(Nodes[i].name==sourceNode)
+		{
+			for(int j=0;j<Nodes[i].numNbrs;j++)
+			{
+				UpdateNodeCost(Nodes[i].nbrs[j], Nodes[i].weights[j],'C');
+			}
+			break;
+		}
 	}
 }
 
@@ -125,15 +227,16 @@ void DisplayTable()
 	printf("Step\tN");
 	int numTabs=ceil(numNodesFound/8+1);
 	for(int i=0;i<numTabs;i++){printf("\t");}
-	for(int i=0;i<numNodesFound;i++){printf("D(%c)\t",foundNodes[i]);}
+	for(int i=1;i<numNodesFound;i++){printf("D(%c)\t",foundNodes[i]);}
 	//Same as first line but with n instead of D
 	printf("\n");
 	for(int i=-1;i<numTabs;i++){printf("\t");}
-	for(int i=0;i<numNodesFound;i++){printf("n(%c)\t",foundNodes[i]);}
+	for(int i=1;i<numNodesFound;i++){printf("n(%c)\t",foundNodes[i]);}
 	//Print dashes equal to number of tabs * 8, plus some extra.
-	int numDashes = (numTabs+numNodesFound)*8+4;
+	int numDashes = (numTabs+numNodesFound-1)*8+4;
 	printf("\n");
 	for(int i=0;i<numDashes;i++){printf("-");}
+	printf("\n");
 }
 
 void PrintMessage(struct Message msg)
@@ -143,11 +246,12 @@ void PrintMessage(struct Message msg)
 
 void PrintNode(struct Node nd)
 {
-	printf("\nNode %c\n\tNbrs\tCosts\n",nd.name);
+	printf("\nNode %c\tCost to A: %d\n\tNbrs\tCosts\n",nd.name,nd.weightToA);
 	for(int i=0;i<nd.numNbrs;i++)
 	{
 		printf("\t%c\t%d\n",nd.nbrs[i],nd.weights[i]);
 	}
+	printf("Next Hop: %c", nd.nextHop);
 }
 
 
@@ -155,7 +259,7 @@ int HasNodeBeenProcessed(char NodeName)
 {
 	for(int i=0;i<numNodesProcessed;i++)
 	{
-		if(ProcessedNodes[i].name == NodeName)
+		if(ProcessedNodes[i] == NodeName)
 		{
 			return 1;
 		}
@@ -165,7 +269,7 @@ int HasNodeBeenProcessed(char NodeName)
 
 int FindNextNode()
 {
-	int lowestCost=0;
+	int lowestCost=INT_MAX;
 	int lowestIndex=0;
 	for(int i=0;i<numNodesFound;i++)
 	{
@@ -192,23 +296,16 @@ void InitMatrix()
 	}
 }
 
-
-int main(int argc, char *argv[]) {
-	InitMatrix();
-	ReadFile(dataFile);
-	FindNeighbours();
-	DisplayTable();
-	
-	for(int i=0;i<messagesFound;i++){PrintMessage(Messages[i]);}
-	for(int i=0;i<numNodesFound;i++){PrintNode(Nodes[i]);}
-	
-	while(numNodesProcessed<numNodesFound)
+void UpdateNodeCost(char NodeName, int newCost, char newNextHop)
+{
+	for(int i=0;i<numNodesFound;i++)
 	{
-		int idx = FindNextNode();
-		for(int i=0;i<Nodes[idx].numNbrs;i++)
+		if(Nodes[i].name==NodeName)
 		{
-			
+			Nodes[i].weightToA=newCost;
+			Nodes[i].nextHop=newNextHop;
+			break;
 		}
-		
 	}
 }
+
