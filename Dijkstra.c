@@ -1,3 +1,8 @@
+/* Cole Hornbeck
+ * Dijkstra routing example
+ * Not proud of this code, but it works. If I had the time I'd make it cleaner
+ */
+
 #include <stdio.h> 
 #include <stdlib.h>
 #include <unistd.h> 
@@ -61,6 +66,7 @@ int main(int argc, char *argv[]) {
 	
 }
 
+//Prints the routing table
 void DisplayRoutingTable()
 {
 	printf("\n\nRouting Table for %c\n",baseNode);
@@ -69,6 +75,7 @@ void DisplayRoutingTable()
 	for(int i=1;i<numNodesFound;i++){printf("%c\t%c\n",Nodes[i].name, Nodes[i].nextHop);}
 }
 
+//Returns the index in Nodes[] of the node with the given name
 int FindNodeWithName(char NodeName)
 {
 	for(int i=0;i<numNodesFound;i++)
@@ -81,6 +88,7 @@ int FindNodeWithName(char NodeName)
 	return -1;
 }
 
+//Prints a single step of the algorithm
 void DisplayLine(int step)
 {
 	int numTabs=ceil(numNodesFound/8-(floor(step/7)));
@@ -113,6 +121,7 @@ void DisplayLine(int step)
 	
 }
 
+//Clears a buffer
 void ClearBuffer(char* buffer){
     for(int i = 0; i < 256; i++)
     {
@@ -173,6 +182,7 @@ void ReadFile(char* fileName)
 	}
 }
 
+//Processes input to build all node neighbours and lay groundwork for first step
 void FindNeighbours()
 {
 	for(int i=0;i<messagesFound;i++)
@@ -206,6 +216,7 @@ void FindNeighbours()
 	ProcessedNodes[numNodesProcessed++]=baseNode;
 }
 
+//Supopsedly updates a nodes neighbours, don't think it works.
 void UpdateNodeNeighbours(char sourceNode)
 {
 	for(int i=0;i<numNodesFound;i++)
@@ -221,6 +232,7 @@ void UpdateNodeNeighbours(char sourceNode)
 	}
 }
 
+//Prints out the header for the table.
 void DisplayTable()
 {
 	//Print first line of formatting adding appropriate tabs
@@ -239,11 +251,13 @@ void DisplayTable()
 	printf("\n");
 }
 
+//Helper to print contents of a message
 void PrintMessage(struct Message msg)
 {
 	printf("%c->%c, %d\n",msg.source,msg.dest,msg.cost);
 }
 
+//Helper to print contents of a node
 void PrintNode(struct Node nd)
 {
 	printf("\nNode %c\tCost to A: %d\n\tNbrs\tCosts\n",nd.name,nd.weightToA);
@@ -254,7 +268,7 @@ void PrintNode(struct Node nd)
 	printf("Next Hop: %c", nd.nextHop);
 }
 
-
+//Checks if the given node has been processed.
 int HasNodeBeenProcessed(char NodeName)
 {
 	for(int i=0;i<numNodesProcessed;i++)
@@ -267,6 +281,7 @@ int HasNodeBeenProcessed(char NodeName)
 	return -1;
 }
 
+//Returns the index in Nodes[] of the lowest-cost non-processed node
 int FindNextNode()
 {
 	int lowestCost=INT_MAX;
@@ -285,6 +300,7 @@ int FindNextNode()
 	return lowestIndex;
 }
 
+//Inits a 26x26 int matrix, unused.
 void InitMatrix()
 {
 	for(int i=0;i<26;i++)
@@ -296,6 +312,7 @@ void InitMatrix()
 	}
 }
 
+//Helper to update a node cost, unused
 void UpdateNodeCost(char NodeName, int newCost, char newNextHop)
 {
 	for(int i=0;i<numNodesFound;i++)
