@@ -1,15 +1,17 @@
-Cole Hornbeck
+Cole Hornbeck with Peter Fabinski
 Dijkstra Routing Example
+
+Cole - LS
+Peter - DV
 
 Run code with 
 
-make clean
 make all
 ./Dijkstra LSInput.txt
 
-Supplying no input file defaults to the test input provided in the proejct document
+Supplying no input file defaults to the test input provided in the project document
 
-Code should output the correctr table, although your terminal window should
+Code should output the correct table, although your terminal window should
 stretch fairly wide to accomodate.
 
 This hodgepodge of slopped together C code is the result of not quite knowing how

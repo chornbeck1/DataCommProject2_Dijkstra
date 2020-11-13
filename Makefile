@@ -7,7 +7,7 @@ comp=Dijkstra
 .PHONY: all
 all: $(comp) 
 clean: 
-	rm *.o $(comp) 
+	rm -f *.o $(comp) 
 
 $(comp):$(source)
 	$(cc) $(cflags) $(source) -o $(comp)
